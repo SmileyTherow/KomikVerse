@@ -8,7 +8,6 @@ use App\Http\Requests\ResendOtpRequest;
 use App\Models\User;
 use App\Models\Otp;
 use App\Mail\OtpMail;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 
@@ -31,21 +30,11 @@ class OtpController extends Controller
             return redirect()->route('login')->with('status', 'Email sudah terverifikasi. Silakan login.');
         }
 
-        $otp = Otp::where('user_id', $user->id)
-                  ->orderBy('created_at', 'desc')
-                  ->first();
+        // use model helper to verify hashed OTP
+        $result = Otp::verifyCode($user->id, $request->code, 5);
 
-        if (! $otp) {
-            return back()->withErrors(['code' => 'Kode OTP tidak ditemukan. Silakan minta resend.']);
-        }
-
-        if (Carbon::now()->gt($otp->expires_at)) {
-            return back()->withErrors(['code' => 'Kode OTP telah kadaluarsa. Silakan kirim ulang.']);
-        }
-
-        if (! Hash::check($request->code, $otp->code_hash)) {
-            $otp->increment('attempts');
-            return back()->withErrors(['code' => 'Kode OTP salah.']);
+        if (! $result['ok']) {
+            return back()->withErrors(['code' => $result['message']]);
         }
 
         // success: mark user verified and delete otps
@@ -69,20 +58,23 @@ class OtpController extends Controller
             return redirect()->route('login')->with('status', 'Email sudah terverifikasi. Silakan login.');
         }
 
-        // optional: limit resend frequency — contoh sederhana: hapus existing dan kirim baru
+        // rate limiting: simple check last OTP created -> at least 60s gap
+        $last = Otp::where('user_id', $user->id)->latest()->first();
+        if ($last && $last->created_at && $last->created_at->gt(now()->subSeconds(60))) {
+            return back()->withErrors(['email' => 'Tunggu sebelum meminta OTP baru (1 menit).']);
+        }
+
+        // remove old otps and create new
         Otp::where('user_id', $user->id)->delete();
 
-        $code = random_int(100000, 999999);
-        $codeHash = Hash::make((string)$code);
+        $plainCode = Otp::createForUser($user->id, 15);
+        $latestOtp = Otp::where('user_id', $user->id)->latest()->first();
 
-        $otp = Otp::create([
-            'user_id' => $user->id,
-            'code_hash' => $codeHash,
-            'expires_at' => Carbon::now()->addMinutes(15),
-            'attempts' => 0,
-        ]);
-
-        Mail::to($user->email)->send(new OtpMail($code, $user));
+        try {
+            Mail::to($user->email)->send(new OtpMail($plainCode, $latestOtp?->expires_at));
+        } catch (\Throwable $e) {
+            return back()->withErrors(['email' => 'Gagal mengirim OTP: '.$e->getMessage()]);
+        }
 
         return back()->with('status', 'Kode OTP baru telah dikirim ke email.');
     }

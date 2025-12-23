@@ -9,7 +9,6 @@ use App\Models\Otp;
 use App\Mail\OtpMail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class RegisterController extends Controller
@@ -34,19 +33,18 @@ class RegisterController extends Controller
         // Remove any existing otps for user (cleanup)
         Otp::where('user_id', $user->id)->delete();
 
-        // generate OTP (6 digits)
-        $code = random_int(100000, 999999);
-        $codeHash = Hash::make((string)$code);
+        // create hashed OTP and get plain code (uses model helper)
+        $plainCode = Otp::createForUser($user->id, 15);
+        $latestOtp = Otp::where('user_id', $user->id)->latest()->first();
 
-        $otp = Otp::create([
-            'user_id' => $user->id,
-            'code_hash' => $codeHash,
-            'expires_at' => Carbon::now()->addMinutes(15),
-            'attempts' => 0,
-        ]);
-
-        // send email with OTP
-        Mail::to($user->email)->send(new OtpMail($code, $user));
+        // send email with OTP (uses the OtpMail that expects code + expires_at)
+        try {
+            Mail::to($user->email)->send(new OtpMail($plainCode, $latestOtp?->expires_at));
+        } catch (\Throwable $e) {
+            // mailer might not be configured — still proceed but inform user
+            return redirect()->route('otp.verify.show')
+                ->with('status', 'Akun dibuat. Gagal mengirim OTP lewat email: ' . $e->getMessage());
+        }
 
         return redirect()->route('otp.verify.show')
             ->with('status', 'Akun dibuat. Kode OTP telah dikirim ke email. Silakan verifikasi.');

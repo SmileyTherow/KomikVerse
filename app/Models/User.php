@@ -5,18 +5,23 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name','email','password','phone','address','is_admin',
+        'name',
+        'email',
+        'password',
+        'phone',
+        'address',
+        'is_admin',
     ];
 
     protected $hidden = [
-        'password','remember_token',
+        'password',
+        'remember_token',
     ];
 
     protected $casts = [
@@ -26,7 +31,7 @@ class User extends Authenticatable
 
     public function borrowings()
     {
-        return $this->hasMany(Borrowing::class);
+        return $this->hasMany(\App\Models\Borrowing::class);
     }
 
     public function processedBorrowings()

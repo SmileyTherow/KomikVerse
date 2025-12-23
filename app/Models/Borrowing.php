@@ -10,8 +10,15 @@ class Borrowing extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id','comic_id','admin_id','status',
-        'requested_at','approved_at','borrowed_at','due_at','returned_at'
+        'user_id',
+        'comic_id',
+        'admin_id',
+        'status',
+        'requested_at',
+        'approved_at',
+        'borrowed_at',
+        'due_at',
+        'returned_at'
     ];
 
     protected $casts = [
@@ -24,17 +31,17 @@ class Borrowing extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
-    }
-
-    public function admin()
-    {
-        return $this->belongsTo(User::class, 'admin_id');
+        return $this->belongsTo(\App\Models\User::class);
     }
 
     public function comic()
     {
-        return $this->belongsTo(Comic::class);
+        return $this->belongsTo(\App\Models\Comic::class);
+    }
+
+    public function admin()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'admin_id');
     }
 
     public function isActive()

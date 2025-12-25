@@ -5,14 +5,19 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterRequest;
 use App\Models\User;
-use App\Models\Otp;
-use App\Mail\OtpMail;
+use App\Services\OtpService;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class RegisterController extends Controller
 {
+    protected OtpService $otpService;
+
+    public function __construct(OtpService $otpService)
+    {
+        $this->otpService = $otpService;
+    }
+
     public function show()
     {
         return view('auth.register');
@@ -24,27 +29,30 @@ class RegisterController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => bcrypt($request->password),
+            'password' => Hash::make($request->password),
             'phone' => $request->phone,
             'address' => $request->address,
             'is_admin' => false,
         ]);
 
-        // Remove any existing otps for user (cleanup)
-        Otp::where('user_id', $user->id)->delete();
-
-        // create hashed OTP and get plain code (uses model helper)
-        $plainCode = Otp::createForUser($user->id, 15);
-        $latestOtp = Otp::where('user_id', $user->id)->latest()->first();
-
-        // send email with OTP (uses the OtpMail that expects code + expires_at)
+        // try to create & send OTP (service will cleanup previous and enforce throttle)
         try {
-            Mail::to($user->email)->send(new OtpMail($plainCode, $latestOtp?->expires_at));
+            $this->otpService->createAndSend($user);
         } catch (\Throwable $e) {
-            // mailer might not be configured — still proceed but inform user
+            // Account is created but OTP sending failed — still continue to verify page with message
+            // Ensure user is NOT logged in
+            Auth::logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+
             return redirect()->route('otp.verify.show')
                 ->with('status', 'Akun dibuat. Gagal mengirim OTP lewat email: ' . $e->getMessage());
         }
+
+        // Ensure user is NOT logged in (prevent auto-login)
+        Auth::logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
 
         return redirect()->route('otp.verify.show')
             ->with('status', 'Akun dibuat. Kode OTP telah dikirim ke email. Silakan verifikasi.');

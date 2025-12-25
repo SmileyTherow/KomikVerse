@@ -10,11 +10,14 @@ class EnsureEmailIsVerified
     public function handle(Request $request, Closure $next)
     {
         $user = $request->user();
-        if (!$user || !$user->email_verified_at) {
-            if ($request->expectsJson()) {
-                return response()->json(['message' => 'Email belum terverifikasi.'], 403);
-            }
-            return redirect()->route('otp.verify.show')->withErrors(['email' => 'Email belum terverifikasi.']);
+
+        if (! $user) {
+            return redirect()->route('login');
+        }
+
+        if (! $user->email_verified_at) {
+            session()->flash('warning', 'Silakan verifikasi email terlebih dahulu.');
+            return redirect()->route('otp.verify.show');
         }
 
         return $next($request);

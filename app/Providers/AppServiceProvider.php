@@ -14,11 +14,13 @@ class AppServiceProvider extends ServiceProvider
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
+    public function boot()
     {
-        //
+        // ... existing code
+
+        // bind alias 'verified.email' to the middleware instance
+        $this->app->singleton('verified.email', function ($app) {
+            return $app->make(\App\Http\Middleware\EnsureEmailIsVerified::class);
+        });
     }
 }

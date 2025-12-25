@@ -21,11 +21,12 @@ class OtpMail extends Mailable
 
     public function build()
     {
-        return $this->subject('Kode OTP KomikVerse')
-            ->view('emails.otp')
-            ->with([
-                'code' => $this->code,
-                'expires_at' => $this->expiresAt,
-            ]);
+        // Gunakan markdown agar komponen mail::message tersedia untuk view yang memakai @component('mail::message')
+        return $this->subject('Kode OTP inkomi')
+                    ->markdown('emails.otp')
+                    ->with([
+                        'code' => $this->code,
+                        'expiresAt' => $this->expiresAt,
+                    ]);
     }
 }

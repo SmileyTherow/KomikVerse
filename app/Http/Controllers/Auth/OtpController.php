@@ -6,13 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\OtpVerifyRequest;
 use App\Http\Requests\ResendOtpRequest;
 use App\Models\User;
-use App\Models\Otp;
-use App\Mail\OtpMail;
-use Illuminate\Support\Facades\Mail;
+use App\Services\OtpService;
 use Carbon\Carbon;
 
 class OtpController extends Controller
 {
+    protected OtpService $otpService;
+
+    public function __construct(OtpService $otpService)
+    {
+        $this->otpService = $otpService;
+    }
+
     public function showVerifyForm()
     {
         return view('auth.otp_verify');
@@ -30,18 +35,18 @@ class OtpController extends Controller
             return redirect()->route('login')->with('status', 'Email sudah terverifikasi. Silakan login.');
         }
 
-        // use model helper to verify hashed OTP
-        $result = Otp::verifyCode($user->id, $request->code, 5);
-
-        if (! $result['ok']) {
-            return back()->withErrors(['code' => $result['message']]);
+        try {
+            $this->otpService->verify($user, $request->code);
+        } catch (\Throwable $e) {
+            return back()->withErrors(['code' => $e->getMessage()]);
         }
 
         // success: mark user verified and delete otps
         $user->email_verified_at = Carbon::now();
         $user->save();
 
-        Otp::where('user_id', $user->id)->delete();
+        // cleanup old otps
+        \App\Models\Otp::where('user_id', $user->id)->delete();
 
         return redirect()->route('login')->with('status', 'Email berhasil diverifikasi. Silakan login.');
     }
@@ -58,22 +63,10 @@ class OtpController extends Controller
             return redirect()->route('login')->with('status', 'Email sudah terverifikasi. Silakan login.');
         }
 
-        // rate limiting: simple check last OTP created -> at least 60s gap
-        $last = Otp::where('user_id', $user->id)->latest()->first();
-        if ($last && $last->created_at && $last->created_at->gt(now()->subSeconds(60))) {
-            return back()->withErrors(['email' => 'Tunggu sebelum meminta OTP baru (1 menit).']);
-        }
-
-        // remove old otps and create new
-        Otp::where('user_id', $user->id)->delete();
-
-        $plainCode = Otp::createForUser($user->id, 15);
-        $latestOtp = Otp::where('user_id', $user->id)->latest()->first();
-
         try {
-            Mail::to($user->email)->send(new OtpMail($plainCode, $latestOtp?->expires_at));
+            $this->otpService->createAndSend($user);
         } catch (\Throwable $e) {
-            return back()->withErrors(['email' => 'Gagal mengirim OTP: '.$e->getMessage()]);
+            return back()->withErrors(['email' => $e->getMessage()]);
         }
 
         return back()->with('status', 'Kode OTP baru telah dikirim ke email.');

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\OtpController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\BorrowingController;
 use App\Http\Controllers\Admin\BorrowingController as AdminBorrowingController;
 use App\Http\Controllers\ComicController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PageController;
 
 // Public: registration + OTP
 Route::get('/register', [RegisterController::class, 'show'])->name('register.show');
@@ -27,9 +29,9 @@ Route::get('/comics/{id}', [\App\Http\Controllers\ComicController::class, 'show'
 
 // Auth routes assumed exist (login/register). If using Laravel Breeze, the routes already in place.
 // Borrowing (user)
-Route::middleware(['auth', 'verified.email'])->group(function () {
-    Route::get('/borrowings', [BorrowingController::class, 'index'])->name('borrowings.index');
-    Route::post('/borrowings/request', [BorrowingController::class, 'requestBorrow'])->name('borrowings.request');
+Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->group(function () {
+    Route::get('/borrowings', [\App\Http\Controllers\BorrowingController::class, 'index'])->name('borrowings.index');
+    Route::post('/borrowings/request', [\App\Http\Controllers\BorrowingController::class, 'requestBorrow'])->name('borrowings.request');
 });
 
 // Admin routes
@@ -48,3 +50,14 @@ Route::get('/logout', [AuthenticatedSessionController::class, 'logout'])->name('
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
+
+// Terms & Privacy Pages
+Route::get('/terms', [PageController::class, 'terms'])->name('terms');
+Route::get('/privacy', [PageController::class, 'privacy'])->name('privacy');
+Route::get('/about', [PageController::class, 'about'])->name('about');
+
+// profile
+Route::middleware('auth')->get('/profile', function () {
+    $user = auth::user();
+    return view('profile', compact('user'));
+})->name('profile');

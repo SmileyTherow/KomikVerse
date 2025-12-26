@@ -17,6 +17,9 @@ class User extends Authenticatable
         'phone',
         'address',
         'is_admin',
+        'gender',
+        'bio',
+        'avatar',
     ];
 
     protected $hidden = [
@@ -37,5 +40,20 @@ class User extends Authenticatable
     public function processedBorrowings()
     {
         return $this->hasMany(Borrowing::class, 'admin_id');
+    }
+
+    // Jika kamu ingin menyimpan genre favorit via relasi many-to-many
+    public function genres()
+    {
+        return $this->belongsToMany(\App\Models\Genre::class);
+    }
+
+    public function initials()
+    {
+        $name = $this->name ?? '';
+        $parts = preg_split('/\s+/', trim($name));
+        if (count($parts) === 0) return strtoupper(substr($name, 0, 1));
+        if (count($parts) === 1) return strtoupper(substr($parts[0], 0, 2));
+        return strtoupper(substr($parts[0], 0, 1) . substr(end($parts), 0, 1));
     }
 }

@@ -50,6 +50,7 @@
                         <div>
                             <small>Sedang Dipinjam</small>
                             <div class="h3 fw-bold mb-0">{{ $activeCount }}</div>
+                            <small class="text-white-50">komik</small>
                         </div>
                         <div class="fs-3"><i class="fas fa-book-open"></i></div>
                     </div>
@@ -84,20 +85,6 @@
                     <a href="{{ route('borrowings.index') }}" class="text-white small d-inline-block mt-3">Lihat riwayat →</a>
                 </div>
             </div>
-
-            <div class="col-12 col-md-6 col-lg-3">
-                <div class="card card-gradient-4 p-4">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <small>Wishlist</small>
-                            <div class="h3 fw-bold mb-0">{{ $wishlistCount }}</div>
-                            <small class="text-white-50">komik</small>
-                        </div>
-                        <div class="fs-3"><i class="fas fa-heart"></i></div>
-                    </div>
-                    <a href="#" class="text-white small d-inline-block mt-3">Lihat wishlist →</a>
-                </div>
-            </div>
         </div>
 
         <!-- Recommendations -->
@@ -126,7 +113,8 @@
                                         <p class="small text-muted mb-2">{{ \Illuminate\Support\Str::limit($comic->description ?? '-', 80) }}</p>
                                         <div class="d-flex justify-content-between align-items-center">
                                             <small class="text-muted">Stok: {{ $comic->stock }}</small>
-                                            <a href="{{ route('comics.show', $comic->id) }}" class="btn btn-sm btn-primary">Pinjam</a>
+                                            {{-- TOMBOL DI SINI HANYA MENUNJUKKAN DETAIL, TIDAK LANGSUNG PINJAM --}}
+                                            <a href="{{ route('comics.show', $comic->id) }}" class="btn btn-sm btn-primary">Lihat</a>
                                         </div>
                                     </div>
                                 </div>

@@ -33,6 +33,8 @@ class RegisterController extends Controller
             'phone' => $request->phone,
             'address' => $request->address,
             'is_admin' => false,
+            'gender' => $request->gender ?? null,
+            'bio' => $request->bio ?? null,
         ]);
 
         // try to create & send OTP (service will cleanup previous and enforce throttle)

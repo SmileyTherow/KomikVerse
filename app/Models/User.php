@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -20,6 +21,7 @@ class User extends Authenticatable
         'gender',
         'bio',
         'avatar',
+        'status',
     ];
 
     protected $hidden = [
@@ -42,7 +44,6 @@ class User extends Authenticatable
         return $this->hasMany(Borrowing::class, 'admin_id');
     }
 
-    // Jika kamu ingin menyimpan genre favorit via relasi many-to-many
     public function genres()
     {
         return $this->belongsToMany(\App\Models\Genre::class);
@@ -60,5 +61,11 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return (bool) ($this->is_admin ?? false);
+    }
+
+    public function likedComics(): BelongsToMany
+    {
+        // jika pivot table kamu bernama 'comic_likes' dan kolomnya user_id/comic_id
+        return $this->belongsToMany(\App\Models\Comic::class, 'comic_likes', 'user_id', 'comic_id')->withTimestamps();
     }
 }

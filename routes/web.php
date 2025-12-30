@@ -85,3 +85,16 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 Route::get('/terms', [PageController::class, 'terms'])->name('terms');
 Route::get('/privacy', [PageController::class, 'privacy'])->name('privacy');
 Route::get('/about', [PageController::class, 'about'])->name('about');
+
+// ================= COMIC LIKES =================
+Route::get('/comics', [ComicController::class, 'index'])->name('comics.index');
+Route::post('/comics/{comic}/like', [ComicController::class, 'like'])->middleware('auth')->name('comics.like');
+Route::delete('/comics/{comic}/like', [ComicController::class, 'unlike'])->middleware('auth')->name('comics.unlike');
+
+// Comics listing & detail
+Route::get('/comics', [ComicController::class, 'index'])->name('comics.index');
+Route::get('/comics/{comic}', [ComicController::class, 'show'])->name('comics.show');
+
+// Like / Unlike (protected by auth middleware in controller)
+Route::post('/comics/{comic}/like', [ComicController::class, 'like'])->name('comics.like')->middleware('auth');
+Route::delete('/comics/{comic}/like', [ComicController::class, 'unlike'])->name('comics.unlike')->middleware('auth');

@@ -10,34 +10,39 @@ class Comic extends Model
 {
     use HasFactory;
 
-    // include both names in fillable so mass assignment tetap aman
     protected $fillable = [
         'title',
         'slug',
-        'description', // existing column in your DB
-        'synopsis',    // virtual (mapped) attribute
+        'description',
+        'synopsis',
         'author',
         'publisher',
-        'cover',       // virtual (mapped) attribute
-        'cover_path',  // existing column in your DB
+        'cover',
+        'cover_path',
         'category_id',
         'status',
         'stock',
+        'page_count',
+        'language',
     ];
 
     protected $casts = [
         'stock' => 'integer',
     ];
 
-    // Keep existing helper method
     public function category()
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(\App\Models\Category::class, 'category_id');
     }
 
     public function genres()
     {
-        return $this->belongsToMany(Genre::class, 'comic_genre');
+        return $this->belongsToMany(\App\Models\Genre::class, 'comic_genre', 'comic_id', 'genre_id');
+    }
+
+    public function likes()
+    {
+        return $this->belongsToMany(\App\Models\User::class, 'comic_likes', 'comic_id', 'user_id')->withTimestamps();
     }
 
     public function borrowings()
@@ -50,35 +55,28 @@ class Comic extends Model
         return $this->stock > 0;
     }
 
-    // --- Compatibility accessors/mutators ---
-
-    // allow $comic->synopsis to read description (if synopsis column not present)
     public function getSynopsisAttribute()
     {
         return $this->attributes['synopsis'] ?? $this->attributes['description'] ?? null;
     }
 
-    // setting synopsis writes to description (and synopsis if exists)
     public function setSynopsisAttribute($value)
     {
         $this->attributes['description'] = $value;
         $this->attributes['synopsis'] = $value;
     }
 
-    // allow $comic->cover to read cover_path
     public function getCoverAttribute()
     {
         return $this->attributes['cover'] ?? $this->attributes['cover_path'] ?? null;
     }
 
-    // setting cover writes to cover_path (and cover if exists)
     public function setCoverAttribute($value)
     {
         $this->attributes['cover_path'] = $value;
         $this->attributes['cover'] = $value;
     }
 
-    // auto-generate slug if not provided and title exists
     protected static function booted()
     {
         static::creating(function ($comic) {
@@ -86,5 +84,28 @@ class Comic extends Model
                 $comic->slug = Str::slug($comic->title);
             }
         });
+    }
+
+    public function getLanguageLabelAttribute(): ?string
+    {
+        $map = [
+            'ID' => 'Bahasa Indonesia',
+            'EN' => 'English',
+            'JP' => '日本語',
+            'KR' => '한국어',
+            'CN' => '中文',
+        ];
+
+        $code = $this->language ?? null;
+        if (!$code) return null;
+        return $map[$code] ?? $code;
+    }
+
+    public function scopeSearch($query, $term)
+    {
+        $term = "%{$term}%";
+        return $query->where('title', 'like', $term)
+            ->orWhereHas('category', fn($q) => $q->where('name', 'like', $term))
+            ->orWhereHas('genres', fn($q) => $q->where('name', 'like', $term));
     }
 }

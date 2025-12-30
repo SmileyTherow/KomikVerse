@@ -48,6 +48,7 @@ class ComicController extends Controller
             'isbn' => 'nullable|string|max:50',
             'synopsis' => 'required|string|min:20',
             'stock' => 'required|integer|min:0',
+            'page_count' => 'nullable|integer|min:0',
             'status' => 'required|string|in:available,coming_soon,out_of_stock',
             'genres' => 'nullable|array',
             'genres.*' => 'integer|exists:genres,id',
@@ -70,6 +71,7 @@ class ComicController extends Controller
             'isbn' => $data['isbn'] ?? null,
             'description' => $data['synopsis'],
             'stock' => $data['stock'],
+            'page_count' => $data['page_count'] ?? 0,
             'status' => $data['status'],
             'cover_path' => $data['cover_path'] ?? null,
             'slug' => $data['slug'],
@@ -86,7 +88,7 @@ class ComicController extends Controller
     {
         $genres = Genre::orderBy('name')->get();
         $comic->load('genres');
-        return view('admin.comics.edit', compact('comic','genres'));
+        return view('admin.comics.edit', compact('comic', 'genres'));
     }
 
     public function update(Request $request, Comic $comic)
@@ -100,6 +102,7 @@ class ComicController extends Controller
             'isbn' => 'nullable|string|max:50',
             'synopsis' => 'required|string|min:20',
             'stock' => 'required|integer|min:0',
+            'page_count' => 'nullable|integer|min:0',
             'status' => 'required|string|in:available,coming_soon,out_of_stock',
             'genres' => 'nullable|array',
             'genres.*' => 'integer|exists:genres,id',
@@ -123,6 +126,7 @@ class ComicController extends Controller
         $comic->isbn = $data['isbn'] ?? null;
         $comic->description = $data['synopsis'];
         $comic->stock = $data['stock'];
+        $comic->page_count = $data['page_count'] ?? 0;
         $comic->status = $data['status'];
         if (!empty($data['cover_path'])) {
             $comic->cover_path = $data['cover_path'];
@@ -144,7 +148,7 @@ class ComicController extends Controller
             $comic->delete();
             return redirect()->route('admin.comics.index')->with('success', 'Komik dihapus.');
         } catch (\Throwable $e) {
-            Log::error('Delete comic error: '.$e->getMessage());
+            Log::error('Delete comic error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal menghapus komik.');
         }
     }

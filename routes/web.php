@@ -10,6 +10,11 @@ use App\Http\Controllers\ComicController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\ComicController as AdminComicController;
+use App\Http\Controllers\Admin\StatisticsController as AdminStatisticsController;
+use App\Http\Controllers\Admin\ActivityController as AdminActivityController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 
 // ================= PUBLIC =================
 
@@ -22,24 +27,24 @@ Route::post('/otp/verify', [OtpController::class, 'verify'])->name('otp.verify')
 Route::post('/otp/resend', [OtpController::class, 'resend'])->name('otp.resend');
 
 // Redirect root
-Route::get('/', fn () => redirect()->route('comics.index'));
+Route::get('/', fn() => redirect()->route('comics.index'));
 
-// Comics
+// Comics (public)
 Route::get('/comics', [ComicController::class, 'index'])->name('comics.index');
 Route::get('/comics/{id}', [ComicController::class, 'show'])->name('comics.show');
 
 // Login / Logout
 Route::get('/login', [AuthenticatedSessionController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthenticatedSessionController::class, 'login'])->name('login.attempt');
-Route::post('/logout', [AuthenticatedSessionController::class, 'logout'])->name('logout');
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.attempt');
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
 // ================= AUTH + VERIFIED =================
 Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->group(function () {
 
-    // Dashboard
+    // Dashboard (user)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Borrowings
+    // Borrowings (user)
     Route::get('/borrowings', [BorrowingController::class, 'index'])->name('borrowings.index');
     Route::post('/borrowings/request', [BorrowingController::class, 'requestBorrow'])->name('borrowings.request');
 
@@ -49,10 +54,31 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
 });
 
 // ================= ADMIN =================
-Route::prefix('admin')->name('admin.')->middleware(['auth','is.admin'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware\EnsureUserIsAdmin::class])->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+    // Borrowings management
     Route::get('/borrowings', [AdminBorrowingController::class, 'index'])->name('borrowings.index');
     Route::post('/borrowings/{id}/approve', [AdminBorrowingController::class, 'approve'])->name('borrowings.approve');
     Route::post('/borrowings/{id}/return', [AdminBorrowingController::class, 'processReturn'])->name('borrowings.return');
+    Route::post('/borrowings/{id}/reject', [AdminBorrowingController::class, 'reject'])->name('borrowings.reject');
+
+    // Comics management
+    Route::get('/comics', [AdminComicController::class, 'index'])->name('comics.index');
+    Route::get('/comics/create', [AdminComicController::class, 'create'])->name('comics.create');
+    Route::post('/comics', [AdminComicController::class, 'store'])->name('comics.store');
+    Route::get('/comics/{comic}/edit', [AdminComicController::class, 'edit'])->name('comics.edit');
+    Route::put('/comics/{comic}', [AdminComicController::class, 'update'])->name('comics.update');
+    Route::delete('/comics/{comic}', [AdminComicController::class, 'destroy'])->name('comics.destroy');
+
+    // Users management
+    Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+    Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+    Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+    Route::get('/statistics', [AdminStatisticsController::class, 'index'])->name('statistics');
+    Route::get('/activity', [AdminActivityController::class, 'index'])->name('activity');
 });
 
 // ================= STATIC =================

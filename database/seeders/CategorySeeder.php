@@ -3,19 +3,38 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Category;
 use Illuminate\Support\Str;
+use App\Models\Category;
 
 class CategorySeeder extends Seeder
 {
     public function run(): void
     {
-        $items = ['Manga','Komik Barat','Manhwa'];
-        foreach ($items as $name) {
-            Category::create([
-                'name' => $name,
-                'slug' => Str::slug($name),
-            ]);
+        $categories = [
+            'Manga',
+            'Komik Barat',
+            'Komik Eropa',
+            'Light Novel',
+            'Graphic Novel',
+            'Webtoon',
+            'Manhwa',
+            'Manhua',
+            'One Shot',
+            'Series',
+            'Volume Tunggal',
+            'Edisi Spesial',
+            'Terbaru',
+            'Populer',
+            'Dewasa',
+            'Anak-anak',
+            'Remaja',
+        ];
+
+        foreach ($categories as $name) {
+            Category::firstOrCreate(
+                ['name' => $name],
+                ['slug' => Str::slug($name)]
+            );
         }
     }
 }

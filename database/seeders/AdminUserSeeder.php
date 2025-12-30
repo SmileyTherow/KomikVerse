@@ -3,29 +3,30 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use Carbon\Carbon;
 
 class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $email = env('ADMIN_EMAIL');
-        $password = env('ADMIN_PASSWORD');
-
-        if (!$email || !$password) {
-            // safe mode: do nothing if env not set
+        // Hati-hati: jika sudah ada user dengan email ini, seeder akan skip
+        $email = 'inkomi.app@gmail.com';
+        $existing = User::where('email', $email)->first();
+        if ($existing) {
+            $this->command->info("Admin user with email {$email} already exists. Skipping.");
             return;
         }
 
-        User::updateOrCreate(
-            ['email' => $email],
-            [
-                'name' => env('ADMIN_NAME', 'Admin KomikVerse'),
-                'password' => Hash::make($password),
-                'is_admin' => true,
-                'email_verified_at' => now(),
-            ]
-        );
+        User::create([
+            'name' => 'Inkomi Admin',
+            'email' => $email,
+            'password' => Hash::make('admin1234'),
+            'is_admin' => true,
+            'email_verified_at' => Carbon::now(),
+        ]);
+
+        $this->command->info("Admin user {$email} created with password 'admin1234'.");
     }
 }

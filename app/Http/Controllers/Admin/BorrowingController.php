@@ -7,78 +7,140 @@ use App\Models\Borrowing;
 use App\Models\Comic;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
+use App\Notifications\BorrowingApproved;
+use App\Notifications\BorrowingReturned;
+use App\Notifications\BorrowingRejected;
 
 class BorrowingController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-        $this->middleware('is.admin');
-    }
-
     public function index()
     {
-        $requests = Borrowing::with(['user','comic'])->where('status', 'requested')->orderBy('requested_at')->get();
-        return view('admin.borrowings.index', compact('requests'));
+        $requests = Borrowing::where('status', Borrowing::STATUS_REQUESTED)
+            ->with(['user', 'comic'])
+            ->orderBy('requested_at', 'desc')
+            ->get();
+
+        $active = Borrowing::where('status', Borrowing::STATUS_DIPINJAM)
+            ->with(['user', 'comic'])
+            ->orderBy('borrowed_at', 'desc')
+            ->get();
+
+        return view('admin.borrowings.index', compact('requests', 'active'));
     }
 
     public function approve(Request $request, $id)
     {
-        $admin = $request->user();
-        $borrowing = Borrowing::findOrFail($id);
+        $borrowing = Borrowing::where('id', $id)
+            ->where('status', Borrowing::STATUS_REQUESTED)
+            ->firstOrFail();
 
-        if ($borrowing->status !== 'requested') {
-            return back()->withErrors(['msg' => 'Hanya request yang dapat disetujui.']);
-        }
-
+        DB::beginTransaction();
         try {
-            DB::transaction(function () use ($borrowing, $admin) {
-                $comic = Comic::where('id', $borrowing->comic_id)->lockForUpdate()->first();
-                if (!$comic || $comic->stock <= 0) {
-                    throw new \Exception('Komik habis/stok 0.');
-                }
+            $comic = Comic::where('id', $borrowing->comic_id)->lockForUpdate()->first();
 
-                $comic->stock = max(0, $comic->stock - 1);
-                $comic->save();
+            if (!$comic) {
+                DB::rollBack();
+                return redirect()->back()->with('error', 'Komik tidak ditemukan.');
+            }
 
-                $borrowing->status = 'dipinjam';
-                $borrowing->approved_at = now();
-                $borrowing->borrowed_at = now();
-                $borrowing->due_at = now()->addDays(7);
-                $borrowing->admin_id = $admin->id;
-                $borrowing->save();
-            });
+            if ($comic->stock <= 0) {
+                DB::rollBack();
+                return redirect()->back()->with('error', 'Stok komik tidak cukup.');
+            }
+
+            $comic->stock = max(0, $comic->stock - 1);
+            $comic->save();
+
+            $now = Carbon::now();
+            $due = $now->copy()->addDays(7);
+
+            $borrowing->status = Borrowing::STATUS_DIPINJAM;
+            $borrowing->approved_at = $now;
+            $borrowing->borrowed_at = $now;
+            $borrowing->due_at = $due;
+            $borrowing->admin_id = $request->user()->id;
+            $borrowing->save();
+
+            DB::commit();
+
+            $borrowing->user->notify(new BorrowingApproved($borrowing));
+
+            return redirect()->back()->with('success', 'Peminjaman disetujui.');
         } catch (\Throwable $e) {
-            return back()->withErrors(['msg' => 'Gagal approve: '.$e->getMessage()]);
+            DB::rollBack();
+            Log::error('Approve borrowing error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memproses approve. ' . $e->getMessage());
         }
-
-        return redirect()->route('admin.borrowings.index')->with('status', 'Permintaan disetujui.');
     }
 
     public function processReturn(Request $request, $id)
     {
-        $admin = $request->user();
-        $borrowing = Borrowing::findOrFail($id);
+        $borrowing = Borrowing::where('id', $id)
+            ->where('status', Borrowing::STATUS_DIPINJAM)
+            ->firstOrFail();
 
-        if ($borrowing->status !== 'dipinjam') {
-            return back()->withErrors(['msg' => 'Hanya peminjaman yang sedang dipinjam dapat diproses pengembaliannya.']);
+        DB::beginTransaction();
+        try {
+            $comic = Comic::where('id', $borrowing->comic_id)->lockForUpdate()->first();
+
+            if (!$comic) {
+                DB::rollBack();
+                return redirect()->back()->with('error', 'Komik tidak ditemukan.');
+            }
+
+            $comic->stock = $comic->stock + 1;
+            $comic->save();
+
+            $now = Carbon::now();
+            $borrowing->returned_at = $now;
+            $borrowing->admin_id = $request->user()->id;
+
+            if ($borrowing->due_at && $now->gt($borrowing->due_at)) {
+                $borrowing->status = Borrowing::STATUS_TERLAMBAT;
+            } else {
+                $borrowing->status = Borrowing::STATUS_DIKEMBALIKAN;
+            }
+
+            $borrowing->save();
+
+            DB::commit();
+
+            $borrowing->user->notify(new BorrowingReturned($borrowing));
+
+            return redirect()->back()->with('success', 'Pengembalian diproses.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Return borrowing error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memproses pengembalian. ' . $e->getMessage());
         }
+    }
+
+    public function reject(Request $request, $id)
+    {
+        $borrowing = Borrowing::where('id', $id)
+            ->where('status', Borrowing::STATUS_REQUESTED)
+            ->firstOrFail();
 
         try {
-            DB::transaction(function () use ($borrowing, $admin) {
-                $comic = Comic::where('id', $borrowing->comic_id)->lockForUpdate()->first();
-                $comic->stock = $comic->stock + 1;
-                $comic->save();
+            $borrowing->status = Borrowing::STATUS_REJECTED;
+            $borrowing->admin_id = $request->user()->id;
+            $borrowing->save();
 
-                $borrowing->returned_at = now();
-                $borrowing->admin_id = $admin->id;
-                $borrowing->status = ($borrowing->due_at && now()->gt($borrowing->due_at)) ? 'terlambat' : 'dikembalikan';
-                $borrowing->save();
-            });
+            // Notifikasi (opsional) — buat BorrowingRejected notification jika mau
+            if (method_exists($borrowing->user, 'notify')) {
+                try {
+                    $borrowing->user->notify(new BorrowingRejected($borrowing));
+                } catch (\Throwable $ex) {
+                    Log::warning('Notify reject failed: ' . $ex->getMessage());
+                }
+            }
+
+            return redirect()->back()->with('success', 'Permintaan peminjaman ditolak.');
         } catch (\Throwable $e) {
-            return back()->withErrors(['msg' => 'Gagal proses pengembalian: '.$e->getMessage()]);
+            Log::error('Reject borrowing error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menolak permintaan. ' . $e->getMessage());
         }
-
-        return redirect()->route('admin.borrowings.index')->with('status', 'Pengembalian diproses.');
     }
 }

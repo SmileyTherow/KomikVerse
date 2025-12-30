@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             GenreSeeder::class,
             ComicSeeder::class,
+            AdminUserSeeder::class,
         ]);
     }
 }

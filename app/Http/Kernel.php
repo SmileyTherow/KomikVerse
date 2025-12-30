@@ -12,7 +12,6 @@ class Kernel extends HttpKernel
      * @var array<int, class-string|string>
      */
     protected $middleware = [
-        // Default Laravel middleware
         \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
@@ -31,7 +30,6 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
-            // If using authentication session guard
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
@@ -60,8 +58,12 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        // custom middleware we will use:
+
+        // Custom middleware aliases
         'verified.email' => \App\Http\Middleware\EnsureEmailIsVerified::class,
+        // Admin middleware alias (pastikan class EnsureUserIsAdmin ada)
+        'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+        // optional alias with dot (jika masih ada route menggunakan 'is.admin')
         'is.admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
     ];
 }

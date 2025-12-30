@@ -39,11 +39,12 @@
         body {
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
         }
 
         main {
-            flex: 1 0 auto;
+            flex: 1;
         }
 
         footer {
@@ -120,7 +121,7 @@
     @stack('styles')
 </head>
 
-<body class="d-flex flex-column min-vh-100">
+<body>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container">
@@ -232,7 +233,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="container flex-grow-1 py-4">
+    <main class="container py-4">
         <!-- Flash Messages -->
         @if (session('status'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -277,7 +278,7 @@
 
     <!-- Footer -->
     @if (!Route::is('login') && !Route::is('register.show') && !Route::is('register'))
-        <footer class="bg-dark text-white mt-auto py-4">
+        <footer class="bg-dark text-white py-4">
             <div class="container">
                 <div class="row">
                     <div class="col-md-4 mb-4">

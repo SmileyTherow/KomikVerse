@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -13,32 +14,40 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login');
     }
 
-    public function login(Request $request)
+    public function store(Request $request)
     {
-        $credentials = $request->validate([
+        $request->validate([
             'email' => ['required','email'],
             'password' => ['required'],
         ]);
 
-        $remember = $request->boolean('remember');
-
-        if (Auth::attempt($credentials, $remember)) {
-            $request->session()->regenerate();
-            return redirect()->intended(route('comics.index'));
+        // Attempt to authenticate
+        if (! Auth::attempt($request->only('email', 'password'), $request->filled('remember'))) {
+            throw ValidationException::withMessages([
+                'email' => ['Email atau password salah.'],
+            ]);
         }
 
-        return back()->withErrors([
-            'email' => 'Email atau password salah.',
-        ])->withInput();
+        $request->session()->regenerate();
+
+        // Redirect based on role (admin vs user)
+        $user = $request->user();
+
+        // Jika admin => arahkan ke admin dashboard
+        if ($user->is_admin ?? false) {
+            // intended lalu fallback ke admin.dashboard
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
+        // biasa user => dashboard pengguna
+        return redirect()->intended(route('dashboard'));
     }
 
-    // Note: using GET logout for simplicity in this dev setup (you can change to POST later)
-    public function logout(Request $request)
+    public function destroy(Request $request)
     {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
-        return redirect()->route('comics.index');
+        return redirect()->route('login');
     }
 }

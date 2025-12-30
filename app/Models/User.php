@@ -56,4 +56,9 @@ class User extends Authenticatable
         if (count($parts) === 1) return strtoupper(substr($parts[0], 0, 2));
         return strtoupper(substr($parts[0], 0, 1) . substr(end($parts), 0, 1));
     }
+
+    public function isAdmin(): bool
+    {
+        return (bool) ($this->is_admin ?? false);
+    }
 }

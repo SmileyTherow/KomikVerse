@@ -110,11 +110,6 @@
                                 <i class="fas fa-sign-in-alt me-2"></i> Masuk ke Akun
                             </button>
 
-                            <!-- Divider -->
-                            <div class="divider d-flex align-items-center my-4">
-                                <p class="text-center mx-3 mb-0 text-muted">atau lanjutkan dengan</p>
-                            </div>
-
                             <!-- Social Login (Optional) -->
                             @if (config('services.google.client_id') || config('services.facebook.client_id'))
                                 <div class="row g-2 mb-4">

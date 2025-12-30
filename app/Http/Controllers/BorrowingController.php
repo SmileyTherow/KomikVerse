@@ -13,8 +13,17 @@ class BorrowingController extends Controller
 {
     public function __construct()
     {
-        // request requires auth; admin endpoints also require auth and is_admin check inside methods
-        $this->middleware('auth')->only(['request', 'approve', 'processReturn', 'indexForAdmin']);
+        // pastikan middleware merujuk ke nama method yang benar
+        $this->middleware('auth')->only(['requestBorrow', 'approve', 'processReturn', 'indexForAdmin']);
+    }
+
+    /**
+     * Route compatibility: some routes call requestBorrow.
+     * Keep this method as adapter to the actual implementation below.
+     */
+    public function requestBorrow(Request $request)
+    {
+        return $this->request($request);
     }
 
     /**
@@ -71,6 +80,25 @@ class BorrowingController extends Controller
         ]);
 
         return back()->with('status', 'Permintaan peminjaman berhasil dikirim. Tunggu konfirmasi admin.');
+    }
+
+    /**
+     * User: list their borrowings (my borrowings)
+     */
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        // eager load comic and optionally admin user
+        $items = Borrowing::with(['comic', 'admin'])
+            ->where('user_id', $user->id)
+            ->orderByDesc('requested_at')
+            ->get();
+
+        return view('borrowings.index', compact('items'));
     }
 
     /**

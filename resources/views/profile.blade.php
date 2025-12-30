@@ -5,6 +5,7 @@
         $totalBorrowed = $totalBorrowed ?? ($user->borrowings()->count() ?? 0);
         $activeCount = $activeCount ?? ($user->borrowings()->where('status', 'dipinjam')->count() ?? 0);
         $userGenres = $userGenres ?? [];
+        $likedComics = $likedComics ?? collect();
     @endphp
 
     <div class="container py-4">
@@ -151,6 +152,42 @@
                         </div>
 
                         <hr>
+
+                        {{-- Daftar komik yang disukai --}}
+                        <h6 class="fw-semibold">Komik yang Anda Sukai</h6>
+                        @if ($likedComics->isEmpty())
+                            <p class="text-muted mb-0">Anda belum menyukai komik apapun.</p>
+                        @else
+                            <div class="row g-3 mt-2">
+                                @foreach ($likedComics as $comic)
+                                    <div class="col-12">
+                                        <div class="d-flex align-items-center">
+                                            <div style="width:64px;height:88px;flex:0 0 64px;overflow:hidden;border-radius:6px;background:#f3f4f6;">
+                                                @if ($comic->cover)
+                                                    <img src="{{ asset('storage/' . $comic->cover) }}" alt="{{ $comic->title }}" style="width:100%;height:100%;object-fit:cover;">
+                                                @endif
+                                            </div>
+                                            <div class="ms-3 flex-grow-1">
+                                                <a href="{{ url('/comics/' . ($comic->slug ?? $comic->id)) }}" class="d-block fw-semibold text-decoration-none">{{ $comic->title }}</a>
+                                                <div class="text-muted small">
+                                                    {{ $comic->category->name ?? '-' }}
+                                                    @if ($comic->genres && $comic->genres->count())
+                                                        • {{ $comic->genres->pluck('name')->join(', ') }}
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="ms-3 text-end">
+                                                @if ($comic->isAvailable())
+                                                    <span class="badge bg-success">Tersedia</span>
+                                                @else
+                                                    <span class="badge bg-secondary">Habis</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
 
                     </div>
                 </div>

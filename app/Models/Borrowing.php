@@ -20,14 +20,17 @@ class Borrowing extends Model
         'returned_at',
     ];
 
-    protected $dates = [
-        'requested_at',
-        'approved_at',
-        'borrowed_at',
-        'due_at',
-        'returned_at',
-        'created_at',
-        'updated_at',
+    /**
+     * Cast date/datetime attributes to Carbon instances
+     */
+    protected $casts = [
+        'requested_at' => 'datetime',
+        'approved_at'  => 'datetime',
+        'borrowed_at'  => 'datetime',
+        'due_at'       => 'datetime',
+        'returned_at'  => 'datetime',
+        'created_at'   => 'datetime',
+        'updated_at'   => 'datetime',
     ];
 
     // Status constants
@@ -63,6 +66,7 @@ class Borrowing extends Model
     // Helpers
     public function isOverdue(): bool
     {
+        // safe checks (returned_at may be null)
         return $this->due_at && $this->returned_at && $this->returned_at->gt($this->due_at);
     }
 

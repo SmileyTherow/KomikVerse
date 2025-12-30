@@ -11,7 +11,8 @@ class ComicController extends Controller
 {
     public function index(Request $request)
     {
-        // ... (biarkan logic index kamu seperti sekarang)
+        $comics = Comic::with('category','genres')->orderByDesc('created_at')->get();
+        return view('comics.index', compact('comics'));
     }
 
     public function show($comicParam)

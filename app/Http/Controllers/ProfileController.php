@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\QueryException;
 use App\Models\Genre;
+use App\Models\User;
 
 class ProfileController extends Controller
 {
@@ -22,6 +23,7 @@ class ProfileController extends Controller
      */
     public function show()
     {
+        /** @var User|null $user */
         $user = Auth::user();
 
         // cek kolom di tabel users (aman jika skema berbeda)
@@ -47,7 +49,7 @@ class ProfileController extends Controller
         }
 
         // jika ada relasi many-to-many, gunakan relasi (lebih prioritas)
-        if (method_exists($user, 'genres')) {
+        if ($user instanceof User && method_exists($user, 'genres')) {
             try {
                 $rel = $user->genres()->pluck('id')->toArray();
                 if (is_array($rel)) {
@@ -58,6 +60,17 @@ class ProfileController extends Controller
             }
         }
 
+        // load komik yang disukai user (liked comics) jika relasi tersedia
+        $likedComics = collect();
+        if ($user instanceof User && method_exists($user, 'likedComics')) {
+            try {
+                // eager load category + genres untuk tampilan
+                $likedComics = $user->likedComics()->with(['category', 'genres'])->get();
+            } catch (\Throwable $e) {
+                $likedComics = collect();
+            }
+        }
+
         return view('profile', compact(
             'user',
             'genres',
@@ -65,7 +78,8 @@ class ProfileController extends Controller
             'hasGender',
             'hasBio',
             'hasFavoriteGenres',
-            'userGenres'
+            'userGenres',
+            'likedComics'
         ));
     }
 

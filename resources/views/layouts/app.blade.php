@@ -276,52 +276,71 @@
         @yield('content')
     </main>
 
-    <!-- Footer -->
+        <!-- Footer Minimalis -->
     @if (!Route::is('login') && !Route::is('register.show') && !Route::is('register'))
-        <footer class="bg-dark text-white py-4">
+        <footer class="bg-dark text-white py-4 mt-auto">
             <div class="container">
-                <div class="row">
-                    <div class="col-md-4 mb-4">
-                        <h4 class="mb-3">Inkomi</h4>
-                        <p class="text-light mb-0">Platform peminjaman komik dan manga terlengkap dengan sistem yang
-                            mudah dan terpercaya.</p>
+                <div class="row align-items-center">
+                    <!-- Logo dan Tentang Singkat -->
+                    <div class="col-lg-5 mb-4 mb-lg-0">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-book me-2 text-primary"></i>
+                            <h5 class="mb-0 fw-bold">Inkomi</h5>
+                        </div>
+                        <p class="text-light mb-0 small">
+                            Platform peminjaman komik digital untuk pecinta komik Indonesia.
+                        </p>
                     </div>
 
-                    <div class="col-md-2 mb-4">
-                        <h5>Menu</h5>
-                        <ul class="list-unstyled">
-                            <li class="mb-2">Dashboard</li>
-                            <li class="mb-2">Komik</li>
-                            <li class="mb-2">Peminjaman</li>
-                        </ul>
-                    </div>
+                    <!-- Links -->
+                    <div class="col-lg-7">
+                        <div class="row">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <h6 class="fw-bold mb-3">Tentang</h6>
+                                <p class="text-light small mb-0">
+                                    Inkomi adalah solusi peminjaman komik digital yang praktis dan terjangkau.
+                                </p>
+                            </div>
 
-                    <div class="col-md-3 mb-4">
-                        <h5>Bantuan</h5>
-                        <ul class="list-unstyled">
-                            <li class="mb-2">FAQ</li>
-                            <li class="mb-2">Cara Meminjam</li>
-                            <li class="mb-2">Syarat & Ketentuan</li>
-                        </ul>
-                    </div>
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <h6 class="fw-bold mb-3">Visi & Misi</h6>
+                                <p class="text-light small mb-0">
+                                    Meningkatkan literasi melalui akses komik yang mudah dan terjangkau.
+                                </p>
+                            </div>
 
-                    <div class="col-md-3 mb-4">
-                        <h5>Hubungi Kami</h5>
-                        <ul class="list-unstyled">
-                            <li class="mb-2">
-                                <i class="fas fa-envelope me-2"></i> support@inkomi.com
-                            </li>
-                            <li>
-                                <i class="fas fa-phone me-2"></i> 0812-3456-7890
-                            </li>
-                        </ul>
+                            <div class="col-md-4">
+                                <h6 class="fw-bold mb-3">Kontak</h6>
+                                <ul class="list-unstyled text-light small">
+                                    <li class="mb-1">
+                                        <i class="fas fa-envelope me-1"></i> support@inkomi.com
+                                    </li>
+                                    <li>
+                                        <i class="fas fa-phone me-1"></i> (021) 1234-5678
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <hr class="bg-light my-4">
+                <hr class="bg-light my-3">
 
-                <div class="text-center">
-                    <p class="mb-0 text-light">&copy; 2025 Inkomi. All rights reserved.</p>
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+                    <p class="text-light small mb-2 mb-md-0">
+                        &copy; 2025 Inkomi. All rights reserved.
+                    </p>
+                    <div class="d-flex gap-3">
+                        <a href="#" class="text-light small">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-light small">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="text-light small">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
         </footer>

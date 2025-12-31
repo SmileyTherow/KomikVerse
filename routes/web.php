@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\StatisticsController as AdminStatisticsController
 use App\Http\Controllers\Admin\ActivityController as AdminActivityController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\GenreController as AdminGenreController;
+use App\Http\Controllers\Admin\UserManagementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -56,7 +57,7 @@ Route::delete('/comics/{comic}/like', [ComicController::class, 'unlike'])->middl
 | Authenticated + Verified (user) Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\EnsureUserIsActive::class, \App\Http\Middleware\EnsureEmailIsVerified::class])->group(function () {
     // Dashboard (user)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -74,7 +75,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
 | Admin Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware\EnsureUserIsAdmin::class])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware\EnsureUserIsActive::class, \App\Http\Middleware\EnsureUserIsAdmin::class])->group(function () {
     // Dashboard
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
@@ -105,6 +106,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
     Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+
+    // User management (status & messaging) — handled by UserManagementController
+    Route::post('/users/{id}/status', [UserManagementController::class, 'updateStatus'])->name('users.updateStatus');
+    Route::get('/users/{id}/message', [UserManagementController::class, 'showMessageForm'])->name('users.showMessageForm');
+    Route::post('/users/{id}/message', [UserManagementController::class, 'sendMessage'])->name('users.sendMessage');
 
     // Admin utilities
     Route::get('/statistics', [AdminStatisticsController::class, 'index'])->name('statistics');

@@ -17,7 +17,7 @@
         <div class="flex justify-between items-start">
             <div>
                 <p class="text-gray-500 text-sm">Total User</p>
-                <p class="text-3xl font-bold text-gray-800 mt-2">{{ \App\Models\User::count() }}</p>
+                <p class="text-3xl font-bold text-gray-800 mt-2">{{ \App\Models\User::nonAdmins()->count() }}</p>
                 <p class="text-sm text-green-600 mt-1">—</p>
             </div>
             <div class="p-3 bg-green-100 rounded-lg">
@@ -30,7 +30,7 @@
         <div class="flex justify-between items-start">
             <div>
                 <p class="text-gray-500 text-sm">User Aktif</p>
-                <p class="text-3xl font-bold text-gray-800 mt-2">{{ \App\Models\User::whereNotNull('email_verified_at')->count() }}</p>
+                <p class="text-3xl font-bold text-gray-800 mt-2">{{ \App\Models\User::nonAdmins()->where('status','active')->whereNotNull('email_verified_at')->count() }}</p>
                 <p class="text-sm text-green-600 mt-1">—</p>
             </div>
             <div class="p-3 bg-blue-100 rounded-lg">
@@ -43,7 +43,7 @@
         <div class="flex justify-between items-start">
             <div>
                 <p class="text-gray-500 text-sm">User Terblokir</p>
-                <p class="text-3xl font-bold text-gray-800 mt-2">{{ \App\Models\User::where('is_blocked', true)->count() ?? 0 }}</p>
+                <p class="text-3xl font-bold text-gray-800 mt-2">{{ \App\Models\User::nonAdmins()->where('status','blocked')->count() }}</p>
                 <p class="text-sm text-red-600 mt-1">—</p>
             </div>
             <div class="p-3 bg-red-100 rounded-lg">
@@ -61,11 +61,6 @@
             </div>
             <input name="q" value="{{ request('q') }}" class="w-full pl-10 pr-3 py-3 border rounded-lg" placeholder="Cari user...">
         </form>
-
-        <div class="flex gap-3">
-            <button id="openAddUser" class="px-4 py-2 bg-green-600 text-white rounded">Tambah User</button>
-            <a href="{{ route('admin.comics.index') }}" class="px-4 py-2 bg-blue-100 text-blue-700 rounded">Kelola Komik</a>
-        </div>
     </div>
 </div>
 
@@ -98,9 +93,9 @@
                     </td>
                     <td class="py-4 px-6">{{ $u->email }}</td>
                     <td class="py-4 px-6">
-                        @if($u->is_blocked ?? false)
+                        @if($u->status === 'blocked')
                             <span class="status-badge bg-red-100 text-red-800">Diblokir</span>
-                        @elseif($u->email_verified_at)
+                        @elseif($u->status === 'active' && $u->email_verified_at)
                             <span class="status-badge bg-green-100 text-green-800">Aktif</span>
                         @else
                             <span class="status-badge bg-amber-100 text-amber-800">Menunggu</span>
@@ -110,18 +105,18 @@
                     <td class="py-4 px-6">{{ optional($u->created_at)->format('d M Y') }}</td>
                     <td class="py-4 px-6 text-center">
                         <div class="flex items-center justify-center gap-2">
-                            <button class="edit-user-btn p-2 text-blue-600 hover:bg-blue-50 rounded"
-                                    data-id="{{ $u->id }}" data-name="{{ $u->name }}" data-email="{{ $u->email }}" data-status="{{ $u->email_verified_at ? 'active' : 'pending' }}">
-                                <i class="fas fa-edit"></i>
+                            <!-- Open modal to change status only -->
+                            <button class="change-status-btn p-2 text-blue-600 hover:bg-blue-50 rounded"
+                                    data-id="{{ $u->id }}" data-status="{{ $u->status ?? 'pending' }}" title="Ubah status">
+                                <i class="fas fa-user-cog"></i>
                             </button>
 
-                            <form action="{{ route('admin.users.destroy', $u->id) }}" method="POST" onsubmit="return confirm('Hapus user ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button class="p-2 text-red-600 hover:bg-red-50 rounded"><i class="fas fa-trash-alt"></i></button>
-                            </form>
+                            <!-- No delete button: admin tidak boleh menghapus user -->
+                            <!-- Link to user's borrowings -->
+                            <a href="{{ route('admin.borrowings.index') }}?user={{ $u->id }}" class="p-2 text-purple-600 hover:bg-purple-50 rounded" title="Lihat peminjaman"><i class="fas fa-eye"></i></a>
 
-                            <a href="{{ route('admin.borrowings.index') }}?user={{ $u->id }}" class="p-2 text-purple-600 hover:bg-purple-50 rounded"><i class="fas fa-eye"></i></a>
+                            <!-- Send message -->
+                            <a href="{{ route('admin.users.showMessageForm', $u->id) }}" class="p-2 text-green-600 hover:bg-green-50 rounded" title="Kirim pesan"><i class="fas fa-envelope"></i></a>
                         </div>
                     </td>
                 </tr>
@@ -138,41 +133,29 @@
     </div>
 </div>
 
-<!-- Modal Add/Edit User -->
+<!-- Modal Change Status -->
 <div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex justify-between items-center">
-            <h3 id="modalTitle" class="text-lg font-bold text-gray-800">Tambah User</h3>
+            <h3 id="modalTitle" class="text-lg font-bold text-gray-800">Ubah Status User</h3>
             <button id="closeModal" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
         </div>
 
-        <form id="userForm" class="p-6" method="POST" enctype="multipart/form-data">
+        <form id="userForm" class="p-6" method="POST">
             @csrf
             <input type="hidden" id="userId" name="userId" value="">
-
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                <input id="userName" name="name" type="text" class="w-full px-4 py-2 border rounded" required>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input id="userEmail" name="email" type="email" class="w-full px-4 py-2 border rounded" required>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input id="userPassword" name="password" type="password" class="w-full px-4 py-2 border rounded">
-                <p class="text-xs text-gray-500 mt-1">Kosongkan jika tidak ingin merubah password</p>
-            </div>
-
-            <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                 <select id="userStatus" name="status" class="w-full px-4 py-2 border rounded">
                     <option value="active">Aktif</option>
                     <option value="pending">Menunggu</option>
                     <option value="blocked">Diblokir</option>
                 </select>
+            </div>
+
+            <div class="mb-4 flex items-center gap-2">
+                <input type="checkbox" id="notify" name="notify" value="1" class="h-4 w-4">
+                <label for="notify" class="text-sm text-gray-600">Kirim notifikasi email ke user</label>
             </div>
 
             <div class="flex justify-end space-x-3">
@@ -185,65 +168,47 @@
 
 <script>
     const modal = document.getElementById('userModal');
-    const openAdd = document.getElementById('openAddUser');
     const closeBtn = document.getElementById('closeModal');
     const cancelBtn = document.getElementById('cancelBtn');
     const userForm = document.getElementById('userForm');
     const modalTitle = document.getElementById('modalTitle');
     const userIdInput = document.getElementById('userId');
-    const userNameInput = document.getElementById('userName');
-    const userEmailInput = document.getElementById('userEmail');
-    const userPasswordInput = document.getElementById('userPassword');
     const userStatusInput = document.getElementById('userStatus');
+    const notifyInput = document.getElementById('notify');
 
-    openAdd.addEventListener('click', () => {
-        modalTitle.textContent = 'Tambah User Baru';
-        userForm.action = "{{ route('admin.users.store') }}";
-        userIdInput.value = '';
-        userNameInput.value = '';
-        userEmailInput.value = '';
-        userPasswordInput.value = '';
-        userPasswordInput.required = true;
-        userStatusInput.value = 'active';
+    // base URL for status update (POST /admin/users/{id}/status)
+    const baseStatusUrl = "{{ url('admin/users') }}";
+
+    function openModal() {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-    });
+    }
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        // reset notify checkbox
+        notifyInput.checked = false;
+    }
 
     closeBtn.addEventListener('click', closeModal);
     cancelBtn.addEventListener('click', closeModal);
 
-    function closeModal() {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-
-    document.querySelectorAll('.edit-user-btn').forEach(btn => {
+    document.querySelectorAll('.change-status-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const id = btn.dataset.id;
-            const name = btn.dataset.name;
-            const email = btn.dataset.email;
-            const status = btn.dataset.status;
+            const status = btn.dataset.status || 'pending';
 
-            modalTitle.textContent = 'Edit User';
-            userForm.action = "{{ url('admin/users') }}/" + id;
-            // add method field for PUT
-            if (!document.getElementById('_method')) {
-                const method = document.createElement('input');
-                method.type = 'hidden';
-                method.name = '_method';
-                method.id = '_method';
-                method.value = 'PUT';
-                userForm.appendChild(method);
-            }
+            modalTitle.textContent = 'Ubah Status User';
+            userForm.action = baseStatusUrl + '/' + id + '/status';
             userIdInput.value = id;
-            userNameInput.value = name;
-            userEmailInput.value = email;
-            userPasswordInput.value = '';
-            userPasswordInput.required = false;
             userStatusInput.value = status;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            notifyInput.checked = false;
+
+            openModal();
         });
     });
+
+    // Optional: client-side form submit handling left default (POST)
+    // If you want to submit via AJAX, implement fetch/XHR here.
 </script>
 @endsection

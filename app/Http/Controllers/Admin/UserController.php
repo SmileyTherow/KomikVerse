@@ -14,28 +14,27 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $q = $request->get('q');
+        $q = $request->query('q');
 
-        $query = User::query()->orderByDesc('created_at');
+        $users = User::nonAdmins()
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('name', 'like', "%{$q}%")
+                        ->orWhere('email', 'like', "%{$q}%");
+                });
+            })
+            // count borrowings (rename alias so blade can use ->active_borrowings_count)
+            ->withCount(['borrowings as active_borrowings_count'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15)
+            ->withQueryString();
 
-        if ($q) {
-            $query->where(function($qf) use ($q) {
-                $qf->where('name', 'like', "%{$q}%")
-                   ->orWhere('email', 'like', "%{$q}%");
-            });
-        }
+        // statistics for tiles (exclude admins)
+        $totalUsers = User::nonAdmins()->count();
+        $activeUsers = User::nonAdmins()->whereNotNull('email_verified_at')->where('status', 'active')->count();
+        $blockedUsers = User::nonAdmins()->where('status', 'blocked')->count();
 
-        $users = $query->paginate(12);
-
-        // eager load active borrow counts
-        $users->getCollection()->transform(function ($user) {
-            $user->active_borrowings_count = Borrowing::where('user_id', $user->id)
-                ->where('status', \App\Models\Borrowing::STATUS_DIPINJAM)
-                ->count();
-            return $user;
-        });
-
-        return view('admin.users.index', compact('users'));
+        return view('admin.users.index', compact('users', 'totalUsers', 'activeUsers', 'blockedUsers'));
     }
 
     public function store(Request $request)
@@ -44,7 +43,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
-            'status' => ['nullable', Rule::in(['active','pending','blocked'])],
+            'status' => ['nullable', Rule::in(['active', 'pending', 'blocked'])],
         ]);
 
         $user = User::create([
@@ -62,9 +61,9 @@ class UserController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required','email', Rule::unique('users','email')->ignore($user->id)],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => 'nullable|string|min:8',
-            'status' => ['nullable', Rule::in(['active','pending','blocked'])],
+            'status' => ['nullable', Rule::in(['active', 'pending', 'blocked'])],
         ]);
 
         $user->name = $data['name'];

@@ -65,5 +65,7 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         // optional alias with dot (jika masih ada route menggunakan 'is.admin')
         'is.admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+        'is_admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+        'user.active' => \App\Http\Middleware\EnsureUserIsActive::class,
     ];
 }

@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ComicController as AdminComicController;
 use App\Http\Controllers\Admin\StatisticsController as AdminStatisticsController;
 use App\Http\Controllers\Admin\ActivityController as AdminActivityController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\GenreController as AdminGenreController;
 use App\Http\Controllers\Admin\UserManagementController;
@@ -115,6 +116,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Admin utilities
     Route::get('/statistics', [AdminStatisticsController::class, 'index'])->name('statistics');
     Route::get('/activity', [AdminActivityController::class, 'index'])->name('activity');
+
+    // Categories management
+    Route::resource('categories', CategoryController::class)->except(['show']);
 });
 
 /*

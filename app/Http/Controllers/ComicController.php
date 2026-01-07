@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Comic;
 use Illuminate\Http\Request;
+use App\Models\Genre;
+use App\Models\Category;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -11,8 +13,48 @@ class ComicController extends Controller
 {
     public function index(Request $request)
     {
-        $comics = Comic::with('category','genres')->orderByDesc('created_at')->get();
-        return view('comics.index', compact('comics'));
+        $q = $request->query('q');
+        $genreId = $request->query('genre');
+        $status = $request->query('status');
+
+        // Normalisasi status: form kamu memakai "available" dan "out" (ubah 'out' -> 'out_of_stock')
+        if ($status === 'out') {
+            $status = 'out_of_stock';
+        }
+
+        $query = Comic::with(['genres', 'category'])->latest();
+
+        if ($q) {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('title', 'like', "%{$q}%")
+                    ->orWhere('description', 'like', "%{$q}%")
+                    ->orWhere('author', 'like', "%{$q}%")
+                    ->orWhere('publisher', 'like', "%{$q}%")
+                    ->orWhereHas('category', function ($c) use ($q) {
+                        $c->where('name', 'like', "%{$q}%");
+                    })
+                    ->orWhereHas('genres', function ($g) use ($q) {
+                        $g->where('name', 'like', "%{$q}%");
+                    });
+            });
+        }
+
+        if (!empty($genreId)) {
+            $query->whereHas('genres', function ($g) use ($genreId) {
+                $g->where('genres.id', $genreId);
+            });
+        }
+
+        if (!empty($status)) {
+            $query->where('status', $status);
+        }
+
+        $comics = $query->paginate(12)->withQueryString();
+
+        // Untuk menampilkan daftar genre di dropdown
+        $genres = Genre::orderBy('name')->get();
+
+        return view('comics.index', compact('comics', 'genres'));
     }
 
     public function show($comicParam)
@@ -56,9 +98,6 @@ class ComicController extends Controller
         return view('comics.show', compact('comic', 'userHasThis', 'userActiveCount', 'related', 'likesCount', 'userHasLiked'));
     }
 
-    /**
-     * Like a comic (POST). Requires auth middleware on route.
-     */
     public function like(Comic $comic)
     {
         $user = Auth::user();
@@ -82,9 +121,6 @@ class ComicController extends Controller
         return back();
     }
 
-    /**
-     * Unlike a comic (DELETE). Requires auth middleware on route.
-     */
     public function unlike(Comic $comic)
     {
         $user = Auth::user();

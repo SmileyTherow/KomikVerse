@@ -96,19 +96,19 @@
                             </div>
                             <span>Approve Peminjaman</span>
                         </a>
-                        <a href="{{ route('admin.users.index') }}"
-                            class="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg">
-                            <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
-                                <i class="fas fa-users text-indigo-600"></i>
-                            </div>
-                            <span>Kelola User</span>
-                        </a>
                         <a href="{{ route('admin.genres.index') }}"
                             class="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg">
                             <div class="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center mr-3">
                                 <i class="fas fa-tags text-pink-600"></i>
                             </div>
                             <span>Kelola Genre</span>
+                        </a>
+                        <a href="{{ route('admin.categories.index') }}"
+                            class="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg">
+                            <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-folder-open text-yellow-600"></i>
+                            </div>
+                            <span>Kelola Kategori</span>
                         </a>
                     </div>
                 </div>

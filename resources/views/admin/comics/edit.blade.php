@@ -26,6 +26,18 @@
                     </div>
 
                     <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Kategori</label>
+                        <select name="category_id" class="w-full px-4 py-3 border rounded-lg" required>
+                            <option value="">-- Pilih Kategori --</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}" {{ (old('category_id', $comic->category_id) == $cat->id) ? 'selected' : '' }}>
+                                    {{ $cat->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
                         <label class="block text-gray-700 mb-2 font-medium">Penulis</label>
                         <input type="text" name="author" value="{{ old('author', $comic->author) }}"
                             class="w-full px-4 py-3 border rounded-lg">
@@ -104,13 +116,13 @@
                         <label class="block text-gray-700 mb-2 font-medium">Bahasa</label>
                         <select name="language" class="w-full md:w-48 px-4 py-3 border rounded-lg">
                             <option value="">Pilih Bahasa</option>
-                            <option value="ID" {{ old('language') == 'ID' ? 'selected' : '' }}>Indonesia - Bahasa
+                            <option value="ID" {{ old('language', $comic->language) == 'ID' ? 'selected' : '' }}>Indonesia - Bahasa
                                 Indonesia</option>
-                            <option value="EN" {{ old('language') == 'EN' ? 'selected' : '' }}>Inggris - English
+                            <option value="EN" {{ old('language', $comic->language) == 'EN' ? 'selected' : '' }}>Inggris - English
                             </option>
-                            <option value="JP" {{ old('language') == 'JP' ? 'selected' : '' }}>Jepang - 日本語</option>
-                            <option value="KR" {{ old('language') == 'KR' ? 'selected' : '' }}>Korea - 한국어</option>
-                            <option value="CN" {{ old('language') == 'CN' ? 'selected' : '' }}>Cina - 中文</option>
+                            <option value="JP" {{ old('language', $comic->language) == 'JP' ? 'selected' : '' }}>Jepang - 日本語</option>
+                            <option value="KR" {{ old('language', $comic->language) == 'KR' ? 'selected' : '' }}>Korea - 한국어</option>
+                            <option value="CN" {{ old('language', $comic->language) == 'CN' ? 'selected' : '' }}>Cina - 中文</option>
                         </select>
                         @error('language')
                             <p class="text-red-500 text-sm mt-1">{{ $message }}</p>

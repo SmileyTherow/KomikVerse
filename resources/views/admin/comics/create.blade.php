@@ -65,6 +65,22 @@
                         </div>
 
                         <div>
+                            <label class="block text-gray-700 mb-2 font-medium">Kategori <span
+                                    class="text-red-500">*</span></label>
+                            <select name="category_id" class="w-full px-4 py-3 border rounded-lg" required>
+                                <option value="">-- Pilih Kategori --</option>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>
+                                        {{ $cat->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('category_id')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
                             <label class="block text-gray-700 mb-2 font-medium">Penulis</label>
                             <input type="text" name="author" value="{{ old('author') }}"
                                 class="w-full px-4 py-3 border rounded-lg" placeholder="Eiichiro Oda">
@@ -94,7 +110,7 @@
 
                     <div class="flex justify-end">
                         <button type="button" onclick="nextStep()"
-                            class="px-6 py-3 gradient-bg hover:opacity-90 text-white rounded-lg font-medium">
+                            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 hover:opacity-90 text-white rounded-lg font-medium">
                             Lanjut ke Step 2 <i class="fas fa-arrow-right ml-2"></i>
                         </button>
                     </div>
@@ -134,7 +150,7 @@
                             <i class="fas fa-arrow-left mr-2"></i> Kembali
                         </button>
                         <button type="button" onclick="nextStep()"
-                            class="px-6 py-3 gradient-bg hover:opacity-90 text-white rounded-lg font-medium">
+                            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 hover:opacity-90 text-white rounded-lg font-medium">
                             Lanjut ke Step 3 <i class="fas fa-arrow-right ml-2"></i>
                         </button>
                     </div>
@@ -215,12 +231,8 @@
                             <i class="fas fa-arrow-left mr-2"></i> Kembali
                         </button>
                         <div class="flex space-x-3">
-                            <button type="button" onclick="saveDraft()"
-                                class="px-6 py-3 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg font-medium">
-                                <i class="fas fa-save mr-2"></i> Simpan Draft
-                            </button>
                             <button type="button" onclick="submitForm()"
-                                class="px-6 py-3 gradient-bg hover:opacity-90 text-white rounded-lg font-medium">
+                                class="px-6 py-3 bg-blue-600 hover:bg-blue-700 hover:opacity-90 text-white rounded-lg font-medium">
                                 <i class="fas fa-check mr-2"></i> Tambah Komik
                             </button>
                         </div>
@@ -228,28 +240,6 @@
                 </div>
             </div>
         </form>
-
-        <div class="bg-gray-50 border-t border-gray-200 px-6 py-4">
-            <div class="flex flex-wrap justify-between">
-                <div class="text-center px-4">
-                    <div class="text-2xl font-bold text-blue-600">--</div>
-                    <div class="text-sm text-gray-600">Total Komik</div>
-                </div>
-                <div class="text-center px-4">
-                    <div class="text-2xl font-bold text-green-600">--</div>
-                    <div class="text-sm text-gray-600">Sedang Dipinjam</div>
-                </div>
-                <div class="text-center px-4">
-                    <div class="text-2xl font-bold text-red-600">--</div>
-                    <div class="text-sm text-gray-600">Terlambat</div>
-                </div>
-                <div class="text-center px-4">
-                    <div class="text-2xl font-bold text-purple-600">--</div>
-                    <div class="text-sm text-gray-600">Menunggu Approval</div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- JS for steps + preview -->
     <script>

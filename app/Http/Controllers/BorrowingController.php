@@ -13,22 +13,14 @@ class BorrowingController extends Controller
 {
     public function __construct()
     {
-        // pastikan middleware merujuk ke nama method yang benar
         $this->middleware('auth')->only(['requestBorrow', 'approve', 'processReturn', 'indexForAdmin']);
     }
 
-    /**
-     * Route compatibility: some routes call requestBorrow.
-     * Keep this method as adapter to the actual implementation below.
-     */
     public function requestBorrow(Request $request)
     {
         return $this->request($request);
     }
 
-    /**
-     * User requests a borrowing (form posts to this)
-     */
     public function request(Request $request)
     {
         $request->validate([
@@ -45,14 +37,12 @@ class BorrowingController extends Controller
             return back()->with('error', 'Akun belum terverifikasi. Lakukan verifikasi email terlebih dahulu.');
         }
 
-        // ensure Borrowing model/table exists
         if (!class_exists(Borrowing::class)) {
             return back()->with('error', 'Fitur peminjaman belum tersedia. Hubungi admin.');
         }
 
         $comicId = (int) $request->input('comic_id');
 
-        // check user's active borrowings (not returned)
         $activeCount = Borrowing::where('user_id', $user->id)
             ->whereNull('returned_at')
             ->count();
@@ -61,7 +51,6 @@ class BorrowingController extends Controller
             return back()->with('error', 'Batas peminjaman aktif tercapai (maks 3).');
         }
 
-        // check if user already has this comic active
         $already = Borrowing::where('user_id', $user->id)
             ->where('comic_id', $comicId)
             ->whereNull('returned_at')
@@ -71,7 +60,6 @@ class BorrowingController extends Controller
             return back()->with('status', 'Anda sudah sedang meminjam komik ini.');
         }
 
-        // create requested borrowing record; admin will approve
         $borrowing = Borrowing::create([
             'user_id' => $user->id,
             'comic_id' => $comicId,
@@ -82,9 +70,6 @@ class BorrowingController extends Controller
         return back()->with('status', 'Permintaan peminjaman berhasil dikirim. Tunggu konfirmasi admin.');
     }
 
-    /**
-     * User: list their borrowings (my borrowings)
-     */
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -92,7 +77,6 @@ class BorrowingController extends Controller
             return redirect()->route('login');
         }
 
-        // eager load comic and optionally admin user
         $items = Borrowing::with(['comic', 'admin'])
             ->where('user_id', $user->id)
             ->orderByDesc('requested_at')
@@ -101,9 +85,6 @@ class BorrowingController extends Controller
         return view('borrowings.index', compact('items'));
     }
 
-    /**
-     * Admin: list all requests (optional simple view)
-     */
     public function indexForAdmin()
     {
         $user = Auth::user();
@@ -115,9 +96,6 @@ class BorrowingController extends Controller
         return view('admin.borrowings.index', compact('requests'));
     }
 
-    /**
-     * Admin approves a borrowing request -> decrement stock, set dipinjam & dates.
-     */
     public function approve(Request $request, Borrowing $borrowing)
     {
         $user = Auth::user();

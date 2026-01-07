@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Comic;
 use App\Models\Genre;
+use App\Models\Category;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use DB;
 
 class ComicController extends Controller
 {
@@ -34,7 +37,8 @@ class ComicController extends Controller
     public function create()
     {
         $genres = Genre::orderBy('name')->get();
-        return view('admin.comics.create', compact('genres'));
+        $categories = Category::orderBy('name')->get();
+        return view('admin.comics.create', compact('genres', 'categories'));
     }
 
     public function store(Request $request)
@@ -53,6 +57,7 @@ class ComicController extends Controller
             'genres' => 'nullable|array',
             'genres.*' => 'integer|exists:genres,id',
             'cover' => 'nullable|image|max:5120',
+            'category_id' => ['required','integer', Rule::exists('categories','id')],
         ]);
 
         if ($request->hasFile('cover')) {
@@ -75,6 +80,7 @@ class ComicController extends Controller
             'status' => $data['status'],
             'cover_path' => $data['cover_path'] ?? null,
             'slug' => $data['slug'],
+            'category_id' => $data['category_id'],
         ]);
 
         if (!empty($data['genres'])) {
@@ -87,8 +93,9 @@ class ComicController extends Controller
     public function edit(Comic $comic)
     {
         $genres = Genre::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
         $comic->load('genres');
-        return view('admin.comics.edit', compact('comic', 'genres'));
+        return view('admin.comics.edit', compact('comic', 'genres', 'categories'));
     }
 
     public function update(Request $request, Comic $comic)
@@ -107,10 +114,10 @@ class ComicController extends Controller
             'genres' => 'nullable|array',
             'genres.*' => 'integer|exists:genres,id',
             'cover' => 'nullable|image|max:5120',
+            'category_id' => ['required','integer', Rule::exists('categories','id')],
         ]);
 
         if ($request->hasFile('cover')) {
-            // hapus file lama jika ada
             if ($comic->cover_path && Storage::disk('public')->exists($comic->cover_path)) {
                 Storage::disk('public')->delete($comic->cover_path);
             }
@@ -128,6 +135,7 @@ class ComicController extends Controller
         $comic->stock = $data['stock'];
         $comic->page_count = $data['page_count'] ?? 0;
         $comic->status = $data['status'];
+        $comic->category_id = $data['category_id'];
         if (!empty($data['cover_path'])) {
             $comic->cover_path = $data['cover_path'];
         }
